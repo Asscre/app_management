@@ -1,0 +1,244 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 后端架构设计方案
+
+## 1. 项目概述
+本方案为软件版本系统提供完整的后端架构设计，包含应用管理、会员服务和API访问三大核心模块，满足高并发、安全性和可扩展性需求。
+
+## 2. 后端架构概述
+采用分层架构设计：
+- API网关层：处理请求路由、认证和限流
+- 业务服务层：应用服务、会员服务、安全服务
+- 数据访问层：MySQL主从集群 + Redis缓存集群
+- 辅助服务：Elasticsearch日志分析、消息队列
+
+## 3. 技术选型
+
+### 3.1 后端框架
+- **Gin框架**：轻量级高性能Go框架，满足1000QPS需求
+- **优势**：路由性能优异、中间件机制完善、社区生态丰富
+- **安全特性**：内置防JSON劫持、XSS防护中间件
+
+### 3.2 数据库技术
+- **MySQL 5.7+**：事务型数据主存储
+  - 读写分离配置：1主2从
+  - 表引擎：InnoDB（支持事务）
+- **Redis 6+**：缓存和会话存储
+  - 集群模式：3主3从
+  - 持久化策略：AOF每秒同步
+
+### 3.3 身份验证方案
+- **JWT+RBAC**：基于角色的访问控制
+  - 令牌有效期：2小时（可刷新）
+  - 密钥轮换：每周自动更新签名密钥
+  - 权限粒度：接口级控制
+
+### 3.4 外部服务
+- **Elasticsearch**：版本日志检索
+- **Mailgun**：告警邮件服务
+- **Sentry**：错误监控
+
+## 4. 系统模块设计
+
+### 4.1 项目结构
+```
+backend/
+├── app/
+│   ├── api/
+│   │   ├── app/          # 应用管理API
+│   │   ├── member/       # 会员API  
+│   │   └── system/       # 系统API
+│   ├── services/
+│   │   ├── app_service.go
+│   │   ├── member_service.go
+│   │   └── cache_service.go
+│   ├── models/
+│   │   ├── application.go
+│   │   ├── version.go
+│   │   └── member.go
+│   └── middleware/
+│       ├── auth.go       # JWT验证
+│       └── rbac.go       # 权限检查
+├── config/               # 多环境配置
+├── pkg/
+│   ├── es/               # ES客户端
+│   └── redis/            # Redis集群
+└── scripts/              # 部署脚本
+```
+
+### 4.2 核心模块
+- **应用服务**：版本发布、应用CRUD
+- **会员服务**：权限配置、等级管理
+- **缓存服务**：多级缓存策略（Redis+本地缓存）
+- **审计服务**：操作日志记录与分析
+
+## 5. 数据库设计
+
+### 5.1 表结构
+```sql
+-- 应用表
+CREATE TABLE `applications` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(20) NOT NULL,
+  `description` VARCHAR(200),
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `idx_name` (`name`)
+);
+
+-- 版本表
+CREATE TABLE `versions` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `app_id` INT NOT NULL,
+  `version` VARCHAR(20) NOT NULL CHECK (version REGEXP '^\\d+\\.\\d+\\.\\d+$'),
+  `changelog_md` TEXT,
+  `changelog_html` TEXT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`app_id`) REFERENCES `applications`(`id`) ON DELETE CASCADE
+);
+
+-- 会员等级表  
+CREATE TABLE `member_levels` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(20) NOT NULL,
+  `permissions` JSON NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 操作日志表
+CREATE TABLE `audit_logs` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `action` VARCHAR(20) NOT NULL,
+  `entity_type` VARCHAR(20),
+  `entity_id` INT,
+  `details` JSON,
+  `ip_address` VARCHAR(45),
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 5.2 关系图
+```mermaid
+erDiagram
+    applications ||--o{ versions : "1:N"
+    applications {
+        int id PK
+        varchar(20) name
+        varchar(200) description
+    }
+    versions {
+        int id PK
+        int app_id FK
+        varchar(20) version
+        text changelog_md
+        text changelog_html
+    }
+    member_levels {
+        int id PK
+        varchar(20) name
+        json permissions
+    }
+```
+
+## 6. API设计
+
+### 6.1 RESTful规范
+- 版本前缀：/api/v1
+- 响应格式：
+```json
+{
+  "code": 200,
+  "data": {},
+  "message": "success"
+}
+```
+
+### 6.2 核心端点
+| 端点 | 方法 | 描述 |
+|------|------|------|
+| `/apps` | POST | 创建应用 |
+| `/apps/{id}/versions` | POST | 发布版本 |
+| `/member/levels` | PUT | 更新会员等级 |
+| `/app/{id}/version` | GET | 获取最新版本 |
+
+### 6.3 错误码
+- 401：未授权
+- 403：权限不足
+- 404：资源不存在
+- 429：请求过频
+
+## 7. 安全设计
+
+### 7.1 认证流程
+1. 用户名密码登录获取JWT
+2. 每次请求携带Authorization头
+3. 网关校验令牌有效性
+4. RBAC中间件校验权限
+
+### 7.2 防护措施
+- SQL注入：预处理语句+ORM
+- XSS：响应头X-XSS-Protection
+- CSRF：SameSite Cookie策略
+- 暴力破解：滑动窗口限流（10次/5分钟）
+
+## 8. 性能优化
+
+### 8.1 缓存策略
+- Redis缓存层：
+  - 应用信息：5分钟TTL
+  - 会员权限：变更时主动更新
+- 本地缓存：
+  - 高频API响应：1分钟TTL
+
+### 8.2 异步处理
+- 版本发布：消息队列处理ES索引
+- 邮件通知：后台任务发送
+
+## 9. 部署方案
+
+### 9.1 容器化
+```dockerfile
+# Gin服务示例
+FROM golang:1.18
+WORKDIR /app
+COPY go.mod ./
+RUN go mod download
+COPY . .
+RUN go build -o /backend
+EXPOSE 8080
+CMD ["/backend"]
+```
+
+### 9.2 K8s部署
+- 应用服务：3副本HPA
+- Redis：StatefulSet部署集群
+- MySQL：Operator管理主从
+
+## 10. 监控体系
+
+### 10.1 指标监控
+- Prometheus采集：
+  - 接口响应时间
+  - 数据库查询耗时
+  - 缓存命中率
+
+### 10.2 日志收集
+- ELK架构：
+  - Filebeat收集日志
+  - Logstash处理
+  - Elasticsearch存储
+
+## 11. 扩展性设计
+
+### 11.1 水平扩展
+- 无状态服务：支持快速扩容
+- 数据分片：按应用ID哈希分片
+
+### 11.2 微服务化路径
+1. 初期：模块化单体
+2. 中期：拆分会员服务
+3. 后期：独立部署版本服务

@@ -1,0 +1,251 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 前端界面设计方案
+
+## 1. 设计理念
+采用Apple的极简设计哲学，结合Material Design的系统性，打造专业高效的B端管理界面。核心原则：
+- **清晰性**：信息层级分明，操作路径直观
+- **一致性**：统一的设计语言贯穿全系统
+- **高效性**：减少冗余操作，提升管理效率
+
+## 2. 视觉规范
+
+### 2.1 色彩系统
+| 类型       | 色值       | 使用场景                 |
+|------------|------------|--------------------------|
+| 主色       | #2962FF    | 主要按钮、重要操作       |
+| 辅助色     | #6C757D    | 次要按钮、描述文字       |
+| 成功色     | #28A745    | 成功状态提示             |
+| 警告色     | #FFC107    | 警告提示                 |
+| 错误色     | #DC3545    | 错误状态、删除操作       |
+| 背景色     | #F8F9FA    | 页面背景                 |
+| 卡片色     | #FFFFFF    | 内容卡片背景             |
+
+### 2.2 字体系统
+- **主字体**：SF Pro Display (Apple系统字体风格)
+- **备选方案**：Inter
+- 字号层级：
+  - H1: 28px (页面标题)
+  - H2: 22px (模块标题)
+  - H3: 18px (卡片标题)
+  - Body: 14px (正文)
+  - Caption: 12px (辅助说明)
+
+### 2.3 间距系统
+基于8pt网格系统：
+- 小间距：8px
+- 中间距：16px
+- 大间距：24px
+- 超大间距：32px
+
+## 3. 核心组件设计
+
+### 3.1 应用管理组件
+**应用卡片**
+```jsx
+<Card className="border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+  <CardHeader>
+    <AppAvatar name={app.name} />
+    <h3 className="text-lg font-medium">{app.name}</h3>
+    <p className="text-gray-500 text-sm">{app.description}</p>
+  </CardHeader>
+  <CardFooter className="flex justify-between">
+    <Badge variant="outline">v{app.latestVersion}</Badge>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontalIcon />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem>发布新版本</DropdownMenuItem>
+        <DropdownMenuItem className="text-red-500">删除应用</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </CardFooter>
+</Card>
+```
+
+**版本发布表单**
+```jsx
+<Dialog>
+  <DialogTrigger asChild>
+    <Button variant="primary">发布新版本</Button>
+  </DialogTrigger>
+  <DialogContent className="sm:max-w-[600px]">
+    <DialogHeader>
+      <DialogTitle>发布新版本</DialogTitle>
+    </DialogHeader>
+    <div className="grid gap-4 py-4">
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="version" className="text-right">
+          版本号
+        </Label>
+        <Input id="version" placeholder="1.0.0" className="col-span-3" />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="changelog" className="text-right">
+          更新日志
+        </Label>
+        <Textarea id="changelog" className="col-span-3 h-[200px]" />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button type="submit">确认发布</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+### 3.2 会员管理组件
+**JSON编辑器**
+```jsx
+<div className="rounded-md border overflow-hidden">
+  <div className="bg-gray-50 p-2 border-b flex justify-between">
+    <span className="text-sm font-medium">权限配置</span>
+    <div className="flex gap-2">
+      <Button variant="outline" size="sm">
+        格式化
+      </Button>
+      <Button variant="outline" size="sm">
+        历史版本
+      </Button>
+    </div>
+  </div>
+  <MonacoEditor
+    height="400px"
+    language="json"
+    theme="vs-light"
+    options={{
+      minimap: { enabled: false },
+      fontSize: 14,
+      lineNumbers: "off",
+    }}
+  />
+</div>
+```
+
+### 3.3 系统安全组件
+**删除确认对话框**
+```jsx
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">删除</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>确认删除应用？</AlertDialogTitle>
+      <AlertDialogDescription>
+        该操作将永久删除应用及所有版本记录，且不可恢复。
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>取消</AlertDialogCancel>
+      <AlertDialogAction className="bg-red-500 hover:bg-red-600">
+        确认删除
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+## 4. 页面布局设计
+
+### 4.1 主界面结构
+```jsx
+<div className="flex h-screen bg-gray-50">
+  {/* 侧边导航 */}
+  <nav className="w-64 border-r bg-white">
+    <div className="p-4 border-b">
+      <h1 className="text-xl font-semibold">版本管理系统</h1>
+    </div>
+    <div className="p-2">
+      <NavItem icon={<AppIcon />} active>
+        应用管理
+      </NavItem>
+      <NavItem icon={<UsersIcon />}>会员管理</NavItem>
+    </div>
+  </nav>
+
+  {/* 主内容区 */}
+  <main className="flex-1 overflow-auto p-6">
+    <div className="max-w-6xl mx-auto">
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold">应用列表</h1>
+        <div className="flex justify-between items-center mt-4">
+          <Search placeholder="搜索应用..." />
+          <Button>新增应用</Button>
+        </div>
+      </header>
+
+      {/* 应用网格列表 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AppCard />
+        <AppCard />
+        <AppCard />
+      </div>
+    </div>
+  </main>
+</div>
+```
+
+### 4.2 响应式方案
+| 断点       | 布局调整                     |
+|------------|------------------------------|
+| <640px     | 单列布局，隐藏侧边栏         |
+| 640-1024px | 双列应用网格                 |
+| >1024px    | 三列应用网格                 |
+
+## 5. 交互细节
+
+### 5.1 表单验证反馈
+```jsx
+<FormField
+  name="appName"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>应用名称</FormLabel>
+      <FormControl>
+        <Input placeholder="输入2-20个字符" {...field} />
+      </FormControl>
+      <FormMessage className="text-red-500 text-sm" />
+    </FormItem>
+  )}
+/>
+```
+
+### 5.2 加载状态
+```jsx
+<Button disabled>
+  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+  处理中...
+</Button>
+```
+
+### 5.3 空状态
+```jsx
+<div className="flex flex-col items-center justify-center py-12">
+  <FolderOpenIcon className="h-12 w-12 text-gray-400" />
+  <h3 className="mt-2 text-sm font-medium">暂无应用</h3>
+  <p className="mt-1 text-sm text-gray-500">点击下方按钮创建第一个应用</p>
+  <Button className="mt-4">新增应用</Button>
+</div>
+```
+
+## 6. 技术实现要点
+
+1. **组件库**：基于shadcn/ui构建可复用的设计系统组件
+2. **主题定制**：通过Tailwind CSS配置扩展颜色和间距系统
+3. **编辑器集成**：使用Monaco Editor实现JSON编辑功能
+4. **响应式方案**：采用Tailwind的断点系统实现自适应布局
+5. **动效处理**：使用CSS Transition实现平滑的交互效果
+
+## 7. 设计交付物
+
+1. **Figma设计稿**：包含所有页面和组件的设计规范
+2. **Storybook**：可交互的组件库文档
+3. **设计Token**：导出为CSS变量供开发使用
+4. **动效规范**：提供关键交互的Lottie示例
