@@ -19,10 +19,18 @@ export interface Version {
 
 export interface CreateApplicationRequest {
   name: string;
-  description?: string;
+  description: string;
 }
 
 export interface CreateVersionRequest {
   version: string;
   changelogMd: string;
+}
+
+export interface MemberLevel {
+  id: number;
+  name: string;
+  level: number;
+  permissions: string;
+  createdAt: string;
 } 
