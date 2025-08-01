@@ -1,10 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
-	"encoding/json"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
