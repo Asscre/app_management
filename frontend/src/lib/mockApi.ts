@@ -31,6 +31,50 @@ let mockApplications: Application[] = [
   },
 ];
 
+// 模拟会员等级数据
+let mockMemberLevels = {
+  levels: [
+    {
+      name: "免费用户",
+      level: 0,
+      permissions: ["basic_access"],
+      benefits: ["基础功能使用"]
+    },
+    {
+      name: "普通会员",
+      level: 1,
+      permissions: ["basic_access", "premium_features"],
+      benefits: ["基础功能使用", "高级功能", "优先客服"]
+    },
+    {
+      name: "高级会员",
+      level: 2,
+      permissions: ["basic_access", "premium_features", "api_access"],
+      benefits: ["基础功能使用", "高级功能", "API访问", "专属客服"]
+    },
+    {
+      name: "企业会员",
+      level: 3,
+      permissions: ["basic_access", "premium_features", "api_access", "admin_panel"],
+      benefits: ["基础功能使用", "高级功能", "API访问", "管理面板", "专属技术支持"]
+    }
+  ],
+  settings: {
+    maxApiCalls: {
+      0: 100,
+      1: 1000,
+      2: 10000,
+      3: 100000
+    },
+    storageLimit: {
+      0: "100MB",
+      1: "1GB",
+      2: "10GB",
+      3: "100GB"
+    }
+  }
+};
+
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -155,5 +199,35 @@ export const mockAppApi = {
         createdAt: "2024-01-15T10:00:00Z",
       },
     ];
+  },
+};
+
+export const mockMemberApi = {
+  // 获取会员等级配置
+  getMemberLevels: async (): Promise<any> => {
+    await delay(400);
+    simulateError(0.05);
+    return { ...mockMemberLevels };
+  },
+
+  // 更新会员等级配置
+  updateMemberLevels: async (data: any): Promise<any> => {
+    await delay(800);
+    simulateError(0.1);
+    
+    // 验证数据结构
+    if (!data.levels || !Array.isArray(data.levels)) {
+      throw new Error('会员等级配置格式错误');
+    }
+
+    // 验证每个等级的数据
+    for (const level of data.levels) {
+      if (!level.name || typeof level.level !== 'number') {
+        throw new Error('会员等级数据格式错误');
+      }
+    }
+
+    mockMemberLevels = { ...data };
+    return { ...mockMemberLevels };
   },
 }; 

@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react';
 import { Application, CreateApplicationRequest } from '@/types/app';
 import { appApi } from '@/lib/api';

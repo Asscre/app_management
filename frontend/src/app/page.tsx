@@ -1,9 +1,12 @@
+"use client"
+
 import { Button } from "@/components/ui/button";
 import { Plus, AppWindow, Users, Settings, Loader2 } from "lucide-react";
 import { useApplications } from "@/hooks/useApplications";
 import { CreateAppDialog } from "@/components/CreateAppDialog";
 import { AppCard } from "@/components/AppCard";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function Home() {
   const { applications, loading, error, createApplication, deleteApplication } = useApplications();
@@ -50,14 +53,14 @@ export default function Home() {
               <AppWindow className="h-5 w-5" />
               <span className="font-medium">应用管理</span>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+            <Link href="/member" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
               <Users className="h-5 w-5" />
               <span>会员管理</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+            </Link>
+            <Link href="/settings" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
               <Settings className="h-5 w-5" />
               <span>系统设置</span>
-            </div>
+            </Link>
           </div>
         </nav>
 
@@ -87,14 +90,14 @@ export default function Home() {
               <AppWindow className="h-5 w-5" />
               <span className="font-medium">应用管理</span>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+            <Link href="/member" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
               <Users className="h-5 w-5" />
               <span>会员管理</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+            </Link>
+            <Link href="/settings" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
               <Settings className="h-5 w-5" />
               <span>系统设置</span>
-            </div>
+            </Link>
           </div>
         </nav>
 
@@ -126,14 +129,14 @@ export default function Home() {
             <AppWindow className="h-5 w-5" />
             <span className="font-medium">应用管理</span>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+          <Link href="/member" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
             <Users className="h-5 w-5" />
             <span>会员管理</span>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+          </Link>
+          <Link href="/settings" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
             <Settings className="h-5 w-5" />
             <span>系统设置</span>
-          </div>
+          </Link>
         </div>
       </nav>
 

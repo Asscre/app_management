@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, AppWindow, Upload, Trash2, Settings } from "lucide-react";
 import { Application } from "@/types/app";
 import { ReleaseVersionDialog } from "./ReleaseVersionDialog";
+import { DeleteConfirmDialog } from "./ConfirmDialog";
 
 interface AppCardProps {
   app: Application;
@@ -66,12 +67,18 @@ export function AppCard({ app, onDeleteApp, onReleaseVersion }: AppCardProps) {
                 应用设置
               </DropdownMenuItem>
               {onDeleteApp && (
-                <DropdownMenuItem 
-                  className="text-red-600"
-                  onClick={handleDelete}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  删除应用
+                <DropdownMenuItem asChild>
+                  <DeleteConfirmDialog
+                    itemName={app.name}
+                    itemType="应用"
+                    onDelete={handleDelete}
+                    trigger={
+                      <div className="flex items-center w-full">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        删除应用
+                      </div>
+                    }
+                  />
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

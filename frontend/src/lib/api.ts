@@ -1,5 +1,5 @@
 import { Application, CreateApplicationRequest, CreateVersionRequest, Version } from '@/types/app';
-import { mockAppApi } from './mockApi';
+import { mockAppApi, mockMemberApi } from './mockApi';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -79,12 +79,16 @@ export const appApi = {
 export const memberApi = {
   // 获取会员等级配置
   getMemberLevels: (): Promise<any> =>
-    request<any>('/member/levels'),
+    process.env.NODE_ENV === 'development'
+      ? mockMemberApi.getMemberLevels()
+      : request<any>('/member/levels'),
 
   // 更新会员等级配置
   updateMemberLevels: (data: any): Promise<any> =>
-    request<any>('/member/levels', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+    process.env.NODE_ENV === 'development'
+      ? mockMemberApi.updateMemberLevels(data)
+      : request<any>('/member/levels', {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }),
 }; 
