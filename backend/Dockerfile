@@ -1,5 +1,5 @@
 # 多阶段构建 - 构建阶段
-FROM golang:1.18-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -10,14 +10,17 @@ RUN apk add --no-cache git ca-certificates tzdata
 # 复制go mod文件
 COPY go.mod go.sum ./
 
-# 下载依赖
-RUN go mod download
-
-# 复制源代码
-COPY . .
-
-# 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+    # 下载依赖
+    RUN go mod download
+    
+    # 复制源代码
+    COPY . .
+    
+    # 整理依赖
+    RUN go mod tidy
+    
+    # 构建应用
+    RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # 运行阶段
 FROM alpine:latest

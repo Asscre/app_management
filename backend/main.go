@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -41,6 +42,14 @@ func main() {
 
 	// 添加性能监控中间件
 	r.Use(middleware.PerformanceMiddleware())
+
+	// 健康检查API
+	r.GET("/api/v1/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":    "healthy",
+			"timestamp": time.Now().Unix(),
+		})
+	})
 
 	// API路由组
 	api := r.Group("/api/v1")
