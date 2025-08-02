@@ -6,6 +6,7 @@ import (
 	"app_management/models"
 	"errors"
 	"regexp"
+	"gorm.io/gorm"
 )
 
 // AppService 应用服务
@@ -30,9 +31,17 @@ func (s *AppService) GetApplications() ([]models.Application, error) {
 		}
 	}
 
-	// 从数据库获取
+	// 从数据库获取，使用优化的查询
 	var applications []models.Application
-	result := config.DB.Preload("Versions").Find(&applications)
+	result := config.DB.
+		Select("id, name, description, status, created_at, updated_at").
+		Preload("Versions", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, app_id, version, changelog_md, changelog_html, created_at").
+				Order("created_at DESC")
+		}).
+		Order("created_at DESC").
+		Find(&applications)
+	
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -178,9 +187,14 @@ func (s *AppService) GetVersions(appID uint) ([]models.Version, error) {
 		}
 	}
 
-	// 从数据库获取
+	// 从数据库获取，使用优化的查询
 	var versions []models.Version
-	result := config.DB.Where("app_id = ?", appID).Order("created_at DESC").Find(&versions)
+	result := config.DB.
+		Select("id, app_id, version, changelog_md, changelog_html, created_at").
+		Where("app_id = ?", appID).
+		Order("created_at DESC").
+		Find(&versions)
+	
 	if result.Error != nil {
 		return nil, result.Error
 	}

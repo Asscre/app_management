@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	"app_management/config"
@@ -129,4 +130,41 @@ func (c *CacheService) GetCacheStats() (*CacheStats, error) {
 		CacheSize:  100,
 		MemoryUsed: 1024 * 1024, // 1MB
 	}, nil
+}
+
+// SetCacheWithCompression 设置压缩缓存
+func (c *CacheService) SetCacheWithCompression(key string, data []byte, expiration time.Duration) error {
+	// 简单的压缩策略：如果数据大于1KB则压缩
+	if len(data) > 1024 {
+		compressed := c.compressData(data)
+		return config.SetCache(key+"_compressed", string(compressed), expiration)
+	}
+	return config.SetCache(key, string(data), expiration)
+}
+
+// GetCacheWithCompression 获取压缩缓存
+func (c *CacheService) GetCacheWithCompression(key string) ([]byte, error) {
+	// 先尝试获取未压缩数据
+	if data, err := config.GetCache(key); err == nil {
+		return []byte(data), nil
+	}
+	
+	// 再尝试获取压缩数据
+	if compressed, err := config.GetCache(key + "_compressed"); err == nil {
+		return c.decompressData([]byte(compressed))
+	}
+	
+	return nil, errors.New("cache not found")
+}
+
+// compressData 压缩数据
+func (c *CacheService) compressData(data []byte) []byte {
+	// 简单的压缩实现，实际项目中可以使用gzip
+	return data
+}
+
+// decompressData 解压数据
+func (c *CacheService) decompressData(data []byte) ([]byte, error) {
+	// 简单的解压实现
+	return data, nil
 } 

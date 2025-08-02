@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"app_management/config"
+	"app_management/middleware"
 	"app_management/models"
 	"app_management/services"
 )
@@ -37,6 +38,9 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+
+	// 添加性能监控中间件
+	r.Use(middleware.PerformanceMiddleware())
 
 	// API路由组
 	api := r.Group("/api/v1")
@@ -484,6 +488,24 @@ func main() {
 					c.JSON(http.StatusOK, gin.H{
 						"code":    200,
 						"message": "缓存清除成功",
+					})
+				})
+
+				// 性能监控API
+				system.GET("/performance/stats", func(c *gin.Context) {
+					stats := middleware.GetPerformanceStats()
+					c.JSON(http.StatusOK, gin.H{
+						"code":    200,
+						"message": "success",
+						"data":    stats,
+					})
+				})
+
+				system.POST("/performance/reset", func(c *gin.Context) {
+					middleware.ResetPerformanceStats()
+					c.JSON(http.StatusOK, gin.H{
+						"code":    200,
+						"message": "性能统计已重置",
 					})
 				})
 			}
