@@ -25,6 +25,8 @@ func main() {
 
 	// 创建服务实例
 	appService := services.NewAppService()
+	authService := services.NewAuthService()
+	memberService := services.NewMemberService()
 	cacheService := services.NewCacheService()
 
 	r := gin.Default()
@@ -66,13 +68,15 @@ func main() {
 					return
 				}
 
-				// 模拟注册成功
-				user := &models.User{
-					ID:       1,
-					Username: req.Username,
-					Email:    req.Email,
-					Role:     "user",
-					Status:   "active",
+				// 创建用户
+				user, err := authService.Register(&req)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"code":    400,
+						"message": "注册失败",
+						"error":   err.Error(),
+					})
+					return
 				}
 
 				c.JSON(http.StatusOK, gin.H{
@@ -93,34 +97,25 @@ func main() {
 					return
 				}
 
-				// 模拟登录验证
-				if req.Username == "admin" && req.Password == "password" {
-					user := &models.User{
-						ID:       1,
-						Username: "admin",
-						Email:    "admin@example.com",
-						Role:     "admin",
-						Status:   "active",
-					}
-
-					// 生成模拟JWT令牌
-					token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIn0.mock"
-
-					c.JSON(http.StatusOK, gin.H{
-						"code":    200,
-						"message": "登录成功",
-						"data": gin.H{
-							"token": token,
-							"user":  user,
-						},
-					})
-				} else {
+				// 验证登录
+				token, user, err := authService.Login(&req)
+				if err != nil {
 					c.JSON(http.StatusUnauthorized, gin.H{
 						"code":    401,
 						"message": "登录失败",
-						"error":   "用户名或密码错误",
+						"error":   err.Error(),
 					})
+					return
 				}
+
+				c.JSON(http.StatusOK, gin.H{
+					"code":    200,
+					"message": "登录成功",
+					"data": gin.H{
+						"token": token,
+						"user":  user,
+					},
+				})
 			})
 		}
 
@@ -344,20 +339,15 @@ func main() {
 						return
 					}
 
-					// 模拟数据
-					versions := []gin.H{
-						{
-							"id":          1,
-							"appId":       appID,
-							"version":     "1.2.0",
-							"changelogMd": "修复已知问题",
-						},
-						{
-							"id":          2,
-							"appId":       appID,
-							"version":     "1.1.0",
-							"changelogMd": "新增功能",
-						},
+					// 从数据库获取版本列表
+					versions, err := appService.GetVersions(uint(appID))
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "获取版本列表失败",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					// 缓存数据
@@ -387,20 +377,15 @@ func main() {
 						return
 					}
 
-					// 模拟数据
-					levels := []gin.H{
-						{
-							"id":          1,
-							"name":        "普通会员",
-							"level":       1,
-							"permissions": `{"features": ["basic"], "limits": {"api_calls": 1000}}`,
-						},
-						{
-							"id":          2,
-							"name":        "高级会员",
-							"level":       2,
-							"permissions": `{"features": ["basic", "advanced"], "limits": {"api_calls": 5000}}`,
-						},
+					// 从数据库获取会员等级
+					levels, err := memberService.GetMemberLevels()
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "获取会员等级失败",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					// 缓存数据
@@ -431,6 +416,28 @@ func main() {
 						return
 					}
 
+					// 转换数据格式
+					var levels []models.MemberLevel
+					for _, level := range req.Levels {
+						memberLevel := models.MemberLevel{
+							Name:        level["name"].(string),
+							Level:       int(level["level"].(float64)),
+							Permissions: level["permissions"].(string),
+						}
+						levels = append(levels, memberLevel)
+					}
+
+					// 更新会员等级
+					err := memberService.UpdateMemberLevels(levels)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "更新会员等级失败",
+							"error":   err.Error(),
+						})
+						return
+					}
+
 					// 清除会员缓存
 					cacheService.ClearMemberCache()
 
@@ -446,21 +453,15 @@ func main() {
 			system := protected.Group("/system")
 			{
 				system.GET("/audit-logs", func(c *gin.Context) {
-					// 模拟数据
-					logs := []gin.H{
-						{
-							"id":         1,
-							"userId":     "admin",
-							"userName":   "系统管理员",
-							"action":     "create",
-							"entityType": "application",
-							"entityId":   "1",
-							"entityName": "移动端APP",
-							"details":    `{"name": "移动端APP", "description": "企业移动应用"}`,
-							"ipAddress":  "192.168.1.100",
-							"timestamp":  "2024-01-15T10:00:00Z",
-							"status":     "success",
-						},
+					// 从数据库获取审计日志
+					logs, err := memberService.GetAuditLogs(100)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "获取审计日志失败",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					c.JSON(http.StatusOK, gin.H{

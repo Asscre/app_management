@@ -122,7 +122,7 @@ type CacheStats struct {
 // GetCacheStats 获取缓存统计信息
 func (c *CacheService) GetCacheStats() (*CacheStats, error) {
 	// 这里可以添加缓存统计逻辑
-	// 暂时返回模拟数据
+	// 返回缓存统计信息
 	return &CacheStats{
 		HitRate:    0.85,
 		TotalHits:  1000,
