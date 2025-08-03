@@ -13,10 +13,12 @@ type Application struct {
 	Description   string         `json:"description" gorm:"size:200"`
 	LatestVersion string         `json:"latestVersion" gorm:"size:20"`
 	Status        string         `json:"status" gorm:"size:20;default:'active'"`
+	APIKey        string         `json:"apiKey" gorm:"size:64;uniqueIndex;not null"`
 	CreatedAt     time.Time      `json:"createdAt"`
 	UpdatedAt     time.Time      `json:"updatedAt"`
 	DeletedAt     gorm.DeletedAt `json:"deletedAt" gorm:"index"`
 	Versions      []Version      `json:"versions" gorm:"foreignKey:AppID"`
+	MemberLevels  []MemberLevel  `json:"memberLevels" gorm:"foreignKey:AppID"`
 }
 
 // Version 版本模型

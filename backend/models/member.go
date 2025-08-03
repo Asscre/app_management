@@ -9,12 +9,14 @@ import (
 // MemberLevel 会员等级模型
 type MemberLevel struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
+	AppID       uint           `json:"appId" gorm:"not null"`
 	Name        string         `json:"name" gorm:"size:20;not null"`
-	Level       int            `json:"level" gorm:"not null;uniqueIndex"`
+	Level       int            `json:"level" gorm:"not null"`
 	Permissions string         `json:"permissions" gorm:"type:json"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   time.Time      `json:"updatedAt"`
 	DeletedAt   gorm.DeletedAt `json:"deletedAt" gorm:"index"`
+	Application Application    `json:"application" gorm:"foreignKey:AppID"`
 }
 
 // AuditLog 审计日志模型

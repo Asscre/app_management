@@ -4,6 +4,7 @@ export interface Application {
   description: string;
   latestVersion: string;
   status: 'active' | 'maintenance' | 'deprecated';
+  apiKey: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +30,7 @@ export interface CreateVersionRequest {
 
 export interface MemberLevel {
   id: number;
+  appId: number;
   name: string;
   level: number;
   permissions: string;

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"app_management/config"
 	"app_management/models"
+	"app_management/utils"
 	"errors"
 	"regexp"
 	"gorm.io/gorm"
@@ -67,10 +68,17 @@ func (s *AppService) CreateApplication(name, description string) (*models.Applic
 		return nil, errors.New("应用名称已存在")
 	}
 
+	// 生成API密钥
+	apiKey, err := utils.GenerateAPIKey()
+	if err != nil {
+		return nil, errors.New("生成API密钥失败")
+	}
+
 	app := &models.Application{
 		Name:        name,
 		Description: description,
 		Status:      "active",
+		APIKey:      apiKey,
 	}
 
 	result := config.DB.Create(app)

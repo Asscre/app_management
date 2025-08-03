@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS applications (
     description VARCHAR(200),
     latest_version VARCHAR(20),
     status VARCHAR(20) DEFAULT 'active',
+    api_key VARCHAR(64) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL
@@ -44,11 +45,13 @@ CREATE TABLE IF NOT EXISTS versions (
 -- 创建会员等级表
 CREATE TABLE IF NOT EXISTS member_levels (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    app_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(20) NOT NULL,
     level INT NOT NULL,
     permissions JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (app_id) REFERENCES applications(id) ON DELETE CASCADE
 );
 
 -- 创建审计日志表
@@ -71,10 +74,6 @@ INSERT INTO users (username, password, email, role, status) VALUES
 ('admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@example.com', 'admin', 'active')
 ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
 
--- 插入默认会员等级
-INSERT INTO member_levels (name, level, permissions) VALUES 
-('普通会员', 1, '{"features": ["basic"], "limits": {"api_calls": 1000}}'),
-('高级会员', 2, '{"features": ["basic", "advanced"], "limits": {"api_calls": 5000}}')
-ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
+-- 生产环境不插入示例数据，由用户自行创建
 
 -- 生产环境不插入示例数据，由用户自行创建 

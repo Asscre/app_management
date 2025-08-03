@@ -381,8 +381,8 @@ func main() {
 						return
 					}
 
-					// 从数据库获取会员等级
-					levels, err := memberService.GetMemberLevels()
+					// 从数据库获取会员等级（暂时使用应用ID 1，后续需要从请求中获取）
+					levels, err := memberService.GetMemberLevels(1)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{
 							"code":    500,
@@ -530,6 +530,61 @@ func main() {
 				})
 			}
 		}
+	}
+
+	// 外部API（需要API密钥验证）
+	external := r.Group("/api/v1/external")
+	external.Use(middleware.APIKeyMiddleware())
+	{
+		// 获取应用最新版本
+		external.GET("/version", func(c *gin.Context) {
+			app := c.MustGet("app").(*models.Application)
+			
+			// 获取最新版本
+			var latestVersion models.Version
+			if err := config.DB.Where("app_id = ?", app.ID).Order("created_at DESC").First(&latestVersion).Error; err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"code":    404,
+					"message": "未找到版本信息",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"code":    200,
+				"message": "success",
+				"data": gin.H{
+					"appName":    app.Name,
+					"version":    latestVersion.Version,
+					"changelog":  latestVersion.ChangelogHTML,
+					"updatedAt":  latestVersion.CreatedAt,
+				},
+			})
+		})
+
+		// 获取应用会员等级信息
+		external.GET("/member-levels", func(c *gin.Context) {
+			app := c.MustGet("app").(*models.Application)
+			
+			// 获取会员等级列表
+			var memberLevels []models.MemberLevel
+			if err := config.DB.Where("app_id = ?", app.ID).Order("level ASC").Find(&memberLevels).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    500,
+					"message": "获取会员等级失败",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"code":    200,
+				"message": "success",
+				"data": gin.H{
+					"appName":      app.Name,
+					"memberLevels": memberLevels,
+				},
+			})
+		})
 	}
 
 	log.Println("服务器启动在端口 8080...")

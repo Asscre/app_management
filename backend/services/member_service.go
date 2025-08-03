@@ -20,7 +20,7 @@ func NewMemberService() *MemberService {
 }
 
 // GetMemberLevels 获取会员等级列表
-func (s *MemberService) GetMemberLevels() ([]models.MemberLevel, error) {
+func (s *MemberService) GetMemberLevels(appID uint) ([]models.MemberLevel, error) {
 	// 尝试从缓存获取
 	if cachedData, err := s.cacheService.GetMemberLevelsCache(); err == nil {
 		var levels []models.MemberLevel
@@ -29,9 +29,9 @@ func (s *MemberService) GetMemberLevels() ([]models.MemberLevel, error) {
 		}
 	}
 
-	// 从数据库获取
+	// 从数据库获取指定应用的会员等级
 	var levels []models.MemberLevel
-	result := config.DB.Order("level ASC").Find(&levels)
+	result := config.DB.Where("app_id = ?", appID).Order("level ASC").Find(&levels)
 	if result.Error != nil {
 		return nil, result.Error
 	}
