@@ -8,6 +8,7 @@ import { AppWindow, Users, Settings, Shield, Activity, Database, Bell } from "lu
 import { AuditLog } from "@/components/AuditLog";
 import Link from "next/link";
 import { toast } from "sonner";
+import AuthGuard from "@/components/AuthGuard";
 
 // 模拟操作日志数据
 const mockAuditLogs = [
@@ -98,7 +99,7 @@ export default function SettingsPage() {
         `${new Date(log.timestamp).toLocaleString()},${log.userName},${log.action},${log.entityName || 'N/A'},${log.ipAddress},${log.status}`
       )
     ].join('\n');
-
+    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -108,124 +109,158 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* 侧边导航 */}
-      <nav className="w-64 border-r bg-white">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-semibold">版本管理系统</h1>
-        </div>
-        <div className="p-2">
-          <Link href="/" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
-            <AppWindow className="h-5 w-5" />
-            <span>应用管理</span>
-          </Link>
-          <Link href="/member" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
-            <Users className="h-5 w-5" />
-            <span>会员管理</span>
-          </Link>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 text-blue-700">
-            <Settings className="h-5 w-5" />
-            <span className="font-medium">系统设置</span>
+    <AuthGuard>
+      <div className="flex h-screen bg-gray-50">
+        <nav className="w-64 border-r bg-white">
+          <div className="p-4 border-b">
+            <h1 className="text-xl font-semibold">版本管理系统</h1>
           </div>
-        </div>
-      </nav>
-
-      {/* 主内容区 */}
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-6xl mx-auto">
-          <header className="mb-6">
-            <h1 className="text-2xl font-bold">系统设置</h1>
-            <p className="text-gray-600 mt-2">系统配置和安全设置</p>
-          </header>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* 系统概览 */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-blue-600" />
-                    安全状态
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">系统状态</span>
-                      <Badge className="bg-green-100 text-green-800">正常</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">最后备份</span>
-                      <span className="text-sm">2小时前</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">活跃用户</span>
-                      <span className="text-sm">12</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Database className="h-5 w-5 text-green-600" />
-                    数据统计
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">应用总数</span>
-                      <span className="text-sm font-medium">3</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">版本总数</span>
-                      <span className="text-sm font-medium">15</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">会员等级</span>
-                      <span className="text-sm font-medium">4</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-orange-600" />
-                    系统通知
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm text-gray-600">
-                      • 系统将在今晚2点进行维护
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      • 新版本v2.1.0已发布
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      • 检测到异常登录尝试
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 操作日志 */}
-            <div className="lg:col-span-2">
-              <AuditLog
-                logs={logs}
-                loading={loading}
-                onRefresh={handleRefreshLogs}
-                onExport={handleExportLogs}
-              />
+          <div className="p-2">
+            <Link href="/" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+              <AppWindow className="h-5 w-5" />
+              <span>应用管理</span>
+            </Link>
+            <Link href="/member" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
+              <Users className="h-5 w-5" />
+              <span>会员管理</span>
+            </Link>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 text-blue-700">
+              <Settings className="h-5 w-5" />
+              <span className="font-medium">系统设置</span>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </nav>
+
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-6xl mx-auto">
+            <header className="mb-6">
+              <h1 className="text-2xl font-bold">系统设置</h1>
+              <p className="text-gray-600">系统配置和监控信息</p>
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* 系统状态卡片 */}
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      系统安全
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">认证状态</span>
+                        <Badge className="bg-green-100 text-green-800">正常</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">API密钥</span>
+                        <Badge className="bg-green-100 text-green-800">已启用</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">访问控制</span>
+                        <Badge className="bg-green-100 text-green-800">已启用</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      性能监控
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">响应时间</span>
+                        <Badge variant="outline">120ms</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">并发连接</span>
+                        <Badge variant="outline">45</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">缓存命中率</span>
+                        <Badge variant="outline">95%</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5" />
+                      数据统计
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">应用数量</span>
+                        <Badge variant="outline">12</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">版本总数</span>
+                        <Badge variant="outline">156</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">会员等级</span>
+                        <Badge variant="outline">4</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 审计日志 */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Bell className="h-5 w-5" />
+                          审计日志
+                        </CardTitle>
+                        <CardDescription>
+                          系统操作记录和访问日志
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleRefreshLogs}
+                          disabled={loading}
+                        >
+                          <Activity className="h-4 w-4 mr-2" />
+                          {loading ? '刷新中...' : '刷新'}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleExportLogs}
+                        >
+                          <Database className="h-4 w-4 mr-2" />
+                          导出
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <AuditLog logs={logs} />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </AuthGuard>
   );
 } 

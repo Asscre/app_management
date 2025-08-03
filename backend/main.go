@@ -539,7 +539,7 @@ func main() {
 		// 获取应用最新版本
 		external.GET("/version", func(c *gin.Context) {
 			app := c.MustGet("app").(*models.Application)
-			
+
 			// 获取最新版本
 			var latestVersion models.Version
 			if err := config.DB.Where("app_id = ?", app.ID).Order("created_at DESC").First(&latestVersion).Error; err != nil {
@@ -554,10 +554,10 @@ func main() {
 				"code":    200,
 				"message": "success",
 				"data": gin.H{
-					"appName":    app.Name,
-					"version":    latestVersion.Version,
-					"changelog":  latestVersion.ChangelogHTML,
-					"updatedAt":  latestVersion.CreatedAt,
+					"appName":   app.Name,
+					"version":   latestVersion.Version,
+					"changelog": latestVersion.ChangelogHTML,
+					"updatedAt": latestVersion.CreatedAt,
 				},
 			})
 		})
@@ -565,7 +565,7 @@ func main() {
 		// 获取应用会员等级信息
 		external.GET("/member-levels", func(c *gin.Context) {
 			app := c.MustGet("app").(*models.Application)
-			
+
 			// 获取会员等级列表
 			var memberLevels []models.MemberLevel
 			if err := config.DB.Where("app_id = ?", app.ID).Order("level ASC").Find(&memberLevels).Error; err != nil {
