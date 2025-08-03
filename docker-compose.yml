@@ -54,7 +54,7 @@ services:
       - DB_NAME=app_management
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=your-secret-key-change-in-production
+      - JWT_SECRET=app_management_production_secret_key_2024
     depends_on:
       mysql:
         condition: service_healthy

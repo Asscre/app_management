@@ -77,16 +77,4 @@ INSERT INTO member_levels (name, level, permissions) VALUES
 ('高级会员', 2, '{"features": ["basic", "advanced"], "limits": {"api_calls": 5000}}')
 ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
 
--- 插入示例应用
-INSERT INTO applications (name, description, latest_version, status) VALUES 
-('移动端APP', '企业移动应用', '1.2.0', 'active'),
-('Web管理台', 'Web端管理系统', '2.1.0', 'active')
-ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
-
--- 插入示例版本
-INSERT INTO versions (app_id, version, changelog_md, changelog_html) VALUES 
-(1, '1.2.0', '修复已知问题', '修复已知问题'),
-(1, '1.1.0', '新增功能', '新增功能'),
-(2, '2.1.0', '性能优化', '性能优化'),
-(2, '2.0.0', '重大更新', '重大更新')
-ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP; 
+-- 生产环境不插入示例数据，由用户自行创建 

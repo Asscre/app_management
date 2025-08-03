@@ -119,10 +119,9 @@ func main() {
 			})
 		}
 
-		// 暂时注释掉认证中间件，直接测试缓存功能
-		// protected := api.Group("")
-		// protected.Use(middleware.AuthMiddleware())
+		// 启用认证中间件
 		protected := api.Group("")
+		protected.Use(middleware.AuthMiddleware())
 		{
 			// 应用管理API
 			apps := protected.Group("/apps")
@@ -218,13 +217,15 @@ func main() {
 						return
 					}
 
-					// 模拟数据
-					app := gin.H{
-						"id":            appID,
-						"name":          "移动端APP",
-						"description":   "企业移动应用",
-						"latestVersion": "1.2.0",
-						"status":        "active",
+					// 从数据库获取应用详情
+					app, err := appService.GetApplication(uint(appID))
+					if err != nil {
+						c.JSON(http.StatusNotFound, gin.H{
+							"code":    404,
+							"message": "应用不存在",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					// 缓存数据
@@ -299,12 +300,15 @@ func main() {
 						return
 					}
 
-					// 模拟创建成功
-					version := gin.H{
-						"id":          1,
-						"appId":       appID,
-						"version":     req.Version,
-						"changelogMd": req.ChangelogMD,
+					// 创建版本
+					version, err := appService.CreateVersion(uint(appID), req.Version, req.ChangelogMD)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "创建版本失败",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					// 清除相关缓存
