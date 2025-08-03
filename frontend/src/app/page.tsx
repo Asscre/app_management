@@ -1,17 +1,20 @@
 "use client"
 
 import { Button } from "@/components/ui/button";
-import { Plus, AppWindow, Users, Settings, Loader2 } from "lucide-react";
+import { Plus, AppWindow, Users, Settings, Loader2, LogOut } from "lucide-react";
 import { useApplications } from "@/hooks/useApplications";
 import { CreateAppDialog } from "@/components/CreateAppDialog";
 import { AppCard } from "@/components/AppCard";
 import { toast } from "sonner";
 import Link from "next/link";
+import { authApi } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { applications, loading, error, createApplication, deleteApplication } = useApplications();
+  const router = useRouter();
 
-  const handleCreateApp = async (data: any) => {
+  const handleCreateApp = async (data: { name: string; description: string }) => {
     try {
       await createApplication(data);
       toast.success("应用创建成功！");
@@ -31,7 +34,7 @@ export default function Home() {
     }
   };
 
-  const handleReleaseVersion = async (appId: number, data: any) => {
+  const handleReleaseVersion = async (appId: number, data: { version: string; changelogMd: string }) => {
     try {
       // 这里需要调用版本发布API
       toast.success("版本发布成功！");
@@ -39,6 +42,12 @@ export default function Home() {
       toast.error("版本发布失败，请重试");
       throw error;
     }
+  };
+
+  const handleLogout = () => {
+    authApi.logout();
+    toast.success("已退出登录");
+    router.push('/login');
   };
 
   if (loading) {
@@ -137,6 +146,16 @@ export default function Home() {
             <Settings className="h-5 w-5" />
             <span>系统设置</span>
           </Link>
+          <div className="mt-auto p-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              <span>退出登录</span>
+            </Button>
+          </div>
         </div>
       </nav>
 
