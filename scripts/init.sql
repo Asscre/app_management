@@ -6,7 +6,7 @@ USE app_management;
 
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- 创建应用表
 CREATE TABLE IF NOT EXISTS applications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(20) NOT NULL UNIQUE,
     description VARCHAR(200),
     latest_version VARCHAR(20),
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS applications (
 
 -- 创建版本表
 CREATE TABLE IF NOT EXISTS versions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    app_id INT NOT NULL,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    app_id BIGINT UNSIGNED NOT NULL,
     version VARCHAR(20) NOT NULL,
     changelog_md TEXT,
     changelog_html TEXT,

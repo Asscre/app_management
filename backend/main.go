@@ -17,16 +17,14 @@ import (
 )
 
 func main() {
-	// 暂时注释掉数据库初始化
-	// config.InitDatabase()
+	// 初始化数据库
+	config.InitDatabase()
 
 	// 初始化Redis
 	config.InitRedis()
 
 	// 创建服务实例
-	// appService := services.NewAppService()
-	// memberService := services.NewMemberService()
-	// authService := services.NewAuthService()
+	appService := services.NewAppService()
 	cacheService := services.NewCacheService()
 
 	r := gin.Default()
@@ -145,22 +143,15 @@ func main() {
 						return
 					}
 
-					// 模拟数据
-					applications := []gin.H{
-						{
-							"id":            1,
-							"name":          "移动端APP",
-							"description":   "企业移动应用",
-							"latestVersion": "1.2.0",
-							"status":        "active",
-						},
-						{
-							"id":            2,
-							"name":          "Web管理台",
-							"description":   "Web端管理系统",
-							"latestVersion": "2.1.0",
-							"status":        "active",
-						},
+					// 从数据库获取应用列表
+					applications, err := appService.GetApplications()
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "获取应用列表失败",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					// 缓存数据
@@ -190,13 +181,15 @@ func main() {
 						return
 					}
 
-					// 模拟创建成功
-					app := gin.H{
-						"id":            3,
-						"name":          req.Name,
-						"description":   req.Description,
-						"latestVersion": "1.0.0",
-						"status":        "active",
+					// 创建应用
+					app, err := appService.CreateApplication(req.Name, req.Description)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "创建应用失败",
+							"error":   err.Error(),
+						})
+						return
 					}
 
 					// 清除应用缓存
@@ -262,9 +255,22 @@ func main() {
 						return
 					}
 
+					// 删除应用
+					err = appService.DeleteApplication(uint(appID))
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"code":    500,
+							"message": "删除应用失败",
+							"error":   err.Error(),
+						})
+						return
+					}
+
 					// 清除相关缓存
 					cacheService.ClearApplicationCache()
 					cacheService.ClearVersionCache()
+					// 强制删除应用列表缓存
+					config.DeleteCache("apps:list")
 
 					c.JSON(http.StatusOK, gin.H{
 						"code":    200,
