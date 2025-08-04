@@ -79,7 +79,7 @@ export default function LoginPage() {
           </form>
           
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>测试账户：admin / password</p>
+            <p>请输入管理员账号和密码</p>
           </div>
         </CardContent>
       </Card>

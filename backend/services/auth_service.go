@@ -38,11 +38,17 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.User, error
 		return nil, err
 	}
 
+	// 设置默认角色，如果请求中指定了角色则使用指定的角色
+	role := "user"
+	if req.Role != "" {
+		role = req.Role
+	}
+
 	user := &models.User{
 		Username: req.Username,
 		Password: string(hashedPassword),
 		Email:    req.Email,
-		Role:     "user",
+		Role:     role,
 		Status:   "active",
 	}
 

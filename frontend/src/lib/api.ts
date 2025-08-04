@@ -88,6 +88,18 @@ export const appApi = {
     request<{code: number; data: Version[]; message: string}>(`/apps/${appId}/versions`).then(res => res.data),
 };
 
+// 系统初始化API
+export const systemApi = {
+  getInitStatus: (): Promise<{initialized: boolean; adminCount: number}> =>
+    request<{code: number; data: {initialized: boolean; adminCount: number}; message: string}>('/system/init-status').then(res => res.data),
+
+  initAdmin: (data: {username: string; email: string; password: string}): Promise<any> =>
+    request<{code: number; data: any; message: string}>('/system/init-admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }).then(res => res.data),
+};
+
 // 认证API
 export const authApi = {
   login: async (username: string, password: string): Promise<{token: string; user: any}> => {

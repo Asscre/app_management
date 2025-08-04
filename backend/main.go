@@ -51,6 +51,95 @@ func main() {
 		})
 	})
 
+	// 系统初始化API（无需认证）
+	r.GET("/api/v1/system/init-status", func(c *gin.Context) {
+		// 检查是否已有管理员账号
+		var count int64
+		if err := config.DB.Model(&models.User{}).Where("role = ?", "admin").Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    500,
+				"message": "检查系统状态失败",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
+			"message": "success",
+			"data": gin.H{
+				"initialized": count > 0,
+				"adminCount":  count,
+			},
+		})
+	})
+
+	r.POST("/api/v1/system/init-admin", func(c *gin.Context) {
+		// 检查是否已有管理员账号
+		var count int64
+		if err := config.DB.Model(&models.User{}).Where("role = ?", "admin").Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    500,
+				"message": "检查系统状态失败",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    400,
+				"message": "系统已初始化，无法重复设置管理员账号",
+			})
+			return
+		}
+
+		var req struct {
+			Username string `json:"username" binding:"required,min=3,max=20"`
+			Email    string `json:"email" binding:"required,email"`
+			Password string `json:"password" binding:"required,min=6"`
+		}
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    400,
+				"message": "请求参数错误",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		// 创建管理员账号
+		user, err := authService.Register(&models.RegisterRequest{
+			Username: req.Username,
+			Email:    req.Email,
+			Password: req.Password,
+			Role:     "admin",
+		})
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    500,
+				"message": "创建管理员账号失败",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
+			"message": "管理员账号创建成功",
+			"data": gin.H{
+				"user": gin.H{
+					"id":       user.ID,
+					"username": user.Username,
+					"email":    user.Email,
+					"role":     user.Role,
+				},
+			},
+		})
+	})
+
 	// API路由组
 	api := r.Group("/api/v1")
 	{
