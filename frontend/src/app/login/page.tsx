@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,12 +25,44 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      await authApi.login(username, password);
+      
+      // 调用登录API
+      const result = await authApi.login(username, password);
+      
+      // 验证登录结果
+      if (!result || !result.token) {
+        throw new Error('登录响应数据无效');
+      }
+      
       toast.success('登录成功！');
-      router.push('/');
-    } catch (error) {
-      toast.error('登录失败，请检查用户名和密码');
+      
+      // 等待一下确保token已保存到localStorage
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // 验证token是否已保存
+      if (!authApi.isAuthenticated()) {
+        throw new Error('登录状态保存失败');
+      }
+      
+      // 跳转到主页
+      router.replace('/');
+    } catch (error: any) {
       console.error('Login error:', error);
+      
+      // 根据错误类型显示不同的错误信息
+      if (error.message === '登录响应数据无效') {
+        toast.error('登录响应数据无效，请重试');
+      } else if (error.message === '登录状态保存失败') {
+        toast.error('登录状态保存失败，请重试');
+      } else if (error.message.includes('401')) {
+        toast.error('用户名或密码错误');
+      } else if (error.message.includes('HTTP error! status: 500')) {
+        toast.error('服务器错误，请稍后重试');
+      } else if (error.message.includes('网络连接失败')) {
+        toast.error('网络连接失败，请检查服务器是否启动');
+      } else {
+        toast.error('登录失败，请检查网络连接');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +88,7 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="请输入用户名"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -67,6 +100,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="请输入密码"
                 required
+                disabled={loading}
               />
             </div>
             <Button 

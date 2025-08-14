@@ -1,12 +1,13 @@
 package services
 
 import (
-	"encoding/json"
 	"app_management/config"
 	"app_management/models"
 	"app_management/utils"
+	"encoding/json"
 	"errors"
 	"regexp"
+
 	"gorm.io/gorm"
 )
 
@@ -24,14 +25,6 @@ func NewAppService() *AppService {
 
 // GetApplications 获取应用列表
 func (s *AppService) GetApplications() ([]models.Application, error) {
-	// 尝试从缓存获取
-	if cachedData, err := s.cacheService.GetApplicationsCache(); err == nil {
-		var applications []models.Application
-		if json.Unmarshal(cachedData, &applications) == nil {
-			return applications, nil
-		}
-	}
-
 	// 从数据库获取，使用优化的查询
 	var applications []models.Application
 	result := config.DB.
@@ -42,14 +35,9 @@ func (s *AppService) GetApplications() ([]models.Application, error) {
 		}).
 		Order("created_at DESC").
 		Find(&applications)
-	
+
 	if result.Error != nil {
 		return nil, result.Error
-	}
-
-	// 缓存数据
-	if data, err := json.Marshal(applications); err == nil {
-		s.cacheService.SetApplicationsCache(data)
 	}
 
 	return applications, nil
@@ -202,7 +190,7 @@ func (s *AppService) GetVersions(appID uint) ([]models.Version, error) {
 		Where("app_id = ?", appID).
 		Order("created_at DESC").
 		Find(&versions)
-	
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -213,4 +201,4 @@ func (s *AppService) GetVersions(appID uint) ([]models.Version, error) {
 	}
 
 	return versions, nil
-} 
+}

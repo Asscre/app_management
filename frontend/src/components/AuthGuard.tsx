@@ -45,7 +45,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }, [router]);
 
   // 显示加载状态
-  if (isAuthenticated === null || needsInit === null) {
+  if (isAuthenticated === null && needsInit === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -57,12 +57,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // 如果系统需要初始化，不渲染内容（会重定向到初始化页）
-  if (needsInit) {
+  if (needsInit === true) {
     return null;
   }
 
   // 如果未认证，不渲染内容（会重定向到登录页）
-  if (!isAuthenticated) {
+  if (isAuthenticated === false) {
     return null;
   }
 

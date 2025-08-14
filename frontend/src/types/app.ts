@@ -7,6 +7,7 @@ export interface Application {
   apiKey: string;
   createdAt: string;
   updatedAt: string;
+  versions?: Version[];
 }
 
 export interface Version {
@@ -20,7 +21,7 @@ export interface Version {
 
 export interface CreateApplicationRequest {
   name: string;
-  description: string;
+  description?: string;
 }
 
 export interface CreateVersionRequest {

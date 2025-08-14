@@ -1,266 +1,373 @@
 "use client"
 
-import { useState } from 'react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { systemApi, authApi } from "@/lib/api";
+import { Loader2, Activity, Database, Trash2, RefreshCw, Download, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AppWindow, Users, Settings, Shield, Activity, Database, Bell } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuditLog } from "@/components/AuditLog";
-import Link from "next/link";
 import { toast } from "sonner";
-import AuthGuard from "@/components/AuthGuard";
 
-// 模拟操作日志数据
-const mockAuditLogs = [
-  {
-    id: "1",
-    userId: "admin",
-    userName: "系统管理员",
-    action: "create",
-    entityType: "application",
-    entityId: "1",
-    entityName: "移动端APP",
-    details: { name: "移动端APP", description: "企业移动应用" },
-    ipAddress: "192.168.1.100",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30分钟前
-    status: "success" as const
-  },
-  {
-    id: "2",
-    userId: "admin",
-    userName: "系统管理员",
-    action: "update",
-    entityType: "member_levels",
-    entityId: "levels",
-    entityName: "会员等级配置",
-    details: { levels: 4, updatedFields: ["permissions"] },
-    ipAddress: "192.168.1.100",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2小时前
-    status: "success" as const
-  },
-  {
-    id: "3",
-    userId: "user1",
-    userName: "张三",
-    action: "login",
-    entityType: "user",
-    entityId: "user1",
-    entityName: "",
-    details: { userAgent: "Chrome/120.0.0.0" },
-    ipAddress: "192.168.1.101",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4小时前
-    status: "success" as const
-  },
-  {
-    id: "4",
-    userId: "user2",
-    userName: "李四",
-    action: "delete",
-    entityType: "application",
-    entityId: "2",
-    entityName: "测试应用",
-    details: { reason: "项目终止" },
-    ipAddress: "192.168.1.102",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1天前
-    status: "success" as const
-  },
-  {
-    id: "5",
-    userId: "user3",
-    userName: "王五",
-    action: "login",
-    entityType: "user",
-    entityId: "user3",
-    entityName: "",
-    details: { userAgent: "Firefox/120.0" },
-    ipAddress: "192.168.1.103",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2天前
-    status: "failed" as const
-  }
-];
+interface PerformanceStats {
+  requestCount: number;
+  averageLatency: number;
+  maxLatency: number;
+  minLatency: number;
+  errorCount: number;
+  successCount: number;
+}
+
+interface CacheStats {
+  hitRate: number;
+  totalKeys: number;
+  memoryUsage: string;
+  lastClearTime: string;
+}
 
 export default function SettingsPage() {
-  const [logs, setLogs] = useState(mockAuditLogs);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const [systemLoading, setSystemLoading] = useState(true);
+  const [needsInit, setNeedsInit] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  // 审计日志状态
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  
+  // 性能监控状态
+  const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
+  
+  // 缓存管理状态
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
+  const [cacheLoading, setCacheLoading] = useState(false);
 
-  const handleRefreshLogs = async () => {
-    setLoading(true);
-    // 模拟刷新延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLogs([...mockAuditLogs]);
-    setLoading(false);
-    toast.success("日志已刷新");
+  useEffect(() => {
+    const checkSystemStatus = async () => {
+      try {
+        const status = await systemApi.getInitStatus();
+        setNeedsInit(!status.initialized);
+        if (!status.initialized) {
+          router.replace("/init");
+          return;
+        }
+        const authenticated = authApi.isAuthenticated();
+        setIsAuthenticated(authenticated);
+        if (!authenticated) {
+          router.replace("/login");
+          return;
+        }
+        setSystemLoading(false);
+      } catch (error) {
+        toast.error("检查系统状态失败");
+        setSystemLoading(false);
+      }
+    };
+    checkSystemStatus();
+  }, [router]);
+
+  const loadAuditLogs = async () => {
+    try {
+      setLogsLoading(true);
+      const response = await fetch('/api/v1/system/audit-logs', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        setAuditLogs(data.data);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      toast.error("加载审计日志失败");
+    } finally {
+      setLogsLoading(false);
+    }
   };
 
-  const handleExportLogs = () => {
+  const loadPerformanceStats = async () => {
+    try {
+      setPerformanceLoading(true);
+      const response = await fetch('/api/v1/system/performance/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        setPerformanceStats(data.data);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      toast.error("加载性能统计失败");
+    } finally {
+      setPerformanceLoading(false);
+    }
+  };
+
+  const loadCacheStats = async () => {
+    try {
+      setCacheLoading(true);
+      const response = await fetch('/api/v1/system/cache/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        setCacheStats(data.data);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      toast.error("加载缓存统计失败");
+    } finally {
+      setCacheLoading(false);
+    }
+  };
+
+  const clearCache = async () => {
+    try {
+      const response = await fetch('/api/v1/system/cache/clear', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        toast.success("缓存清除成功");
+        loadCacheStats();
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      toast.error("清除缓存失败");
+    }
+  };
+
+  const resetPerformanceStats = async () => {
+    try {
+      const response = await fetch('/api/v1/system/performance/reset', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.code === 200) {
+        toast.success("性能统计已重置");
+        loadPerformanceStats();
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      toast.error("重置性能统计失败");
+    }
+  };
+
+  const exportAuditLogs = () => {
     const csvContent = [
-      "时间,用户,操作,目标,IP地址,状态",
-      ...logs.map(log => 
-        `${new Date(log.timestamp).toLocaleString()},${log.userName},${log.action},${log.entityName || 'N/A'},${log.ipAddress},${log.status}`
-      )
-    ].join('\n');
-    
+      ['时间', '用户', '操作', '实体类型', '实体名称', 'IP地址', '状态'],
+      ...auditLogs.map(log => [
+        new Date(log.createdAt).toLocaleString(),
+        log.userName,
+        log.action,
+        log.entityType || '',
+        log.entityName || '',
+        log.ipAddress,
+        log.status
+      ])
+    ].map(row => row.join(',')).join('\n');
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    toast.success("日志已导出");
   };
 
-  return (
-    <AuthGuard>
-      <div className="flex h-screen bg-gray-50">
-        <nav className="w-64 border-r bg-white">
-          <div className="p-4 border-b">
-            <h1 className="text-xl font-semibold">版本管理系统</h1>
-          </div>
-          <div className="p-2">
-            <Link href="/" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
-              <AppWindow className="h-5 w-5" />
-              <span>应用管理</span>
-            </Link>
-            <Link href="/member" className="flex items-center gap-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50">
-              <Users className="h-5 w-5" />
-              <span>会员管理</span>
-            </Link>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 text-blue-700">
-              <Settings className="h-5 w-5" />
-              <span className="font-medium">系统设置</span>
-            </div>
-          </div>
-        </nav>
+  // 初始化加载数据
+  useEffect(() => {
+    if (!systemLoading && !needsInit && isAuthenticated) {
+      loadAuditLogs();
+      loadPerformanceStats();
+      loadCacheStats();
+    }
+  }, [systemLoading, needsInit, isAuthenticated]);
 
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-6xl mx-auto">
-            <header className="mb-6">
-              <h1 className="text-2xl font-bold">系统设置</h1>
-              <p className="text-gray-600">系统配置和监控信息</p>
-            </header>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* 系统状态卡片 */}
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      系统安全
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">认证状态</span>
-                        <Badge className="bg-green-100 text-green-800">正常</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">API密钥</span>
-                        <Badge className="bg-green-100 text-green-800">已启用</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">访问控制</span>
-                        <Badge className="bg-green-100 text-green-800">已启用</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      性能监控
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">响应时间</span>
-                        <Badge variant="outline">120ms</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">并发连接</span>
-                        <Badge variant="outline">45</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">缓存命中率</span>
-                        <Badge variant="outline">95%</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="h-5 w-5" />
-                      数据统计
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">应用数量</span>
-                        <Badge variant="outline">12</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">版本总数</span>
-                        <Badge variant="outline">156</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">会员等级</span>
-                        <Badge variant="outline">4</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* 审计日志 */}
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Bell className="h-5 w-5" />
-                          审计日志
-                        </CardTitle>
-                        <CardDescription>
-                          系统操作记录和访问日志
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleRefreshLogs}
-                          disabled={loading}
-                        >
-                          <Activity className="h-4 w-4 mr-2" />
-                          {loading ? '刷新中...' : '刷新'}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleExportLogs}
-                        >
-                          <Database className="h-4 w-4 mr-2" />
-                          导出
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <AuditLog logs={logs} />
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </main>
+  if (systemLoading || needsInit === null || isAuthenticated === null) {
+    return (
+      <div className="flex h-screen bg-gray-50 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2 text-gray-600">检查系统状态...</span>
       </div>
-    </AuthGuard>
+    );
+  }
+  if (needsInit) return null;
+  if (!isAuthenticated) return null;
+
+  return (
+    <div className="p-8 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">系统设置</h1>
+        <p className="text-gray-600 mt-1">管理系统配置、监控性能和查看审计日志</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* 性能监控卡片 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">性能监控</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {performanceLoading ? (
+              <div className="flex items-center justify-center h-20">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : performanceStats ? (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">总请求数</span>
+                  <span className="text-sm font-medium">{performanceStats.requestCount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">平均延迟</span>
+                  <span className="text-sm font-medium">{performanceStats.averageLatency.toFixed(2)}ms</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">错误率</span>
+                  <span className="text-sm font-medium">
+                    {performanceStats.requestCount > 0 
+                      ? ((performanceStats.errorCount / performanceStats.requestCount) * 100).toFixed(2)
+                      : 0}%
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full mt-2"
+                  onClick={resetPerformanceStats}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  重置统计
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">暂无数据</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 缓存管理卡片 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">缓存管理</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {cacheLoading ? (
+              <div className="flex items-center justify-center h-20">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : cacheStats ? (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">命中率</span>
+                  <span className="text-sm font-medium">{cacheStats.hitRate.toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">缓存键数</span>
+                  <span className="text-sm font-medium">{cacheStats.totalKeys.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">内存使用</span>
+                  <span className="text-sm font-medium">{cacheStats.memoryUsage}</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full mt-2"
+                  onClick={clearCache}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  清除缓存
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">暂无数据</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 系统状态卡片 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">系统状态</CardTitle>
+            <div className="h-4 w-4 rounded-full bg-green-500"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">数据库</span>
+                <Badge variant="outline" className="text-green-600">正常</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Redis</span>
+                <Badge variant="outline" className="text-green-600">正常</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">API服务</span>
+                <Badge variant="outline" className="text-green-600">正常</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 审计日志 */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>审计日志</CardTitle>
+              <CardDescription>查看系统操作历史记录</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={loadAuditLogs} disabled={logsLoading}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                刷新
+              </Button>
+              <Button variant="outline" onClick={exportAuditLogs} disabled={auditLogs.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                导出
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {logsLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2 text-gray-600">加载审计日志...</span>
+            </div>
+          ) : (
+            <AuditLog 
+              logs={auditLogs}
+              onRefresh={loadAuditLogs}
+              onExport={exportAuditLogs}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 } 

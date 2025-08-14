@@ -218,14 +218,16 @@ func main() {
 				apps.GET("", func(c *gin.Context) {
 					// 尝试从缓存获取
 					if cachedData, err := cacheService.GetApplicationsCache(); err == nil {
-						c.JSON(http.StatusOK, gin.H{
-							"code":    200,
-							"message": "success (from cache)",
-							"data":    string(cachedData),
-						})
-						return
+						var applications []models.Application
+						if err := json.Unmarshal(cachedData, &applications); err == nil {
+							c.JSON(http.StatusOK, gin.H{
+								"code":    200,
+								"message": "success (from cache)",
+								"data":    applications,
+							})
+							return
+						}
 					}
-
 					// 从数据库获取应用列表
 					applications, err := appService.GetApplications()
 					if err != nil {
@@ -236,12 +238,6 @@ func main() {
 						})
 						return
 					}
-
-					// 缓存数据
-					if data, err := json.Marshal(applications); err == nil {
-						cacheService.SetApplicationsCache(data)
-					}
-
 					c.JSON(http.StatusOK, gin.H{
 						"code":    200,
 						"message": "success (from database)",
@@ -285,6 +281,7 @@ func main() {
 					})
 				})
 
+				// 单个应用API
 				apps.GET("/:id", func(c *gin.Context) {
 					id := c.Param("id")
 					appID, err := strconv.Atoi(id)
@@ -295,17 +292,18 @@ func main() {
 						})
 						return
 					}
-
 					// 尝试从缓存获取
 					if cachedData, err := cacheService.GetApplicationCache(id); err == nil {
-						c.JSON(http.StatusOK, gin.H{
-							"code":    200,
-							"message": "success (from cache)",
-							"data":    string(cachedData),
-						})
-						return
+						var app models.Application
+						if err := json.Unmarshal(cachedData, &app); err == nil {
+							c.JSON(http.StatusOK, gin.H{
+								"code":    200,
+								"message": "success (from cache)",
+								"data":    app,
+							})
+							return
+						}
 					}
-
 					// 从数据库获取应用详情
 					app, err := appService.GetApplication(uint(appID))
 					if err != nil {
@@ -316,12 +314,10 @@ func main() {
 						})
 						return
 					}
-
 					// 缓存数据
 					if data, err := json.Marshal(app); err == nil {
 						cacheService.SetApplicationCache(id, data)
 					}
-
 					c.JSON(http.StatusOK, gin.H{
 						"code":    200,
 						"message": "success (from database)",
@@ -411,6 +407,7 @@ func main() {
 					})
 				})
 
+				// 版本列表API
 				apps.GET("/:id/versions", func(c *gin.Context) {
 					id := c.Param("id")
 					appID, err := strconv.Atoi(id)
@@ -421,17 +418,18 @@ func main() {
 						})
 						return
 					}
-
 					// 尝试从缓存获取
 					if cachedData, err := cacheService.GetVersionsCache(id); err == nil {
-						c.JSON(http.StatusOK, gin.H{
-							"code":    200,
-							"message": "success (from cache)",
-							"data":    string(cachedData),
-						})
-						return
+						var versions []models.Version
+						if err := json.Unmarshal(cachedData, &versions); err == nil {
+							c.JSON(http.StatusOK, gin.H{
+								"code":    200,
+								"message": "success (from cache)",
+								"data":    versions,
+							})
+							return
+						}
 					}
-
 					// 从数据库获取版本列表
 					versions, err := appService.GetVersions(uint(appID))
 					if err != nil {
@@ -442,12 +440,10 @@ func main() {
 						})
 						return
 					}
-
 					// 缓存数据
 					if data, err := json.Marshal(versions); err == nil {
 						cacheService.SetVersionsCache(id, data)
 					}
-
 					c.JSON(http.StatusOK, gin.H{
 						"code":    200,
 						"message": "success (from database)",
@@ -459,17 +455,22 @@ func main() {
 			// 会员管理API
 			members := protected.Group("/member")
 			{
+				// 会员等级API
 				members.GET("/levels", func(c *gin.Context) {
 					// 尝试从缓存获取
 					if cachedData, err := cacheService.GetMemberLevelsCache(); err == nil {
-						c.JSON(http.StatusOK, gin.H{
-							"code":    200,
-							"message": "success (from cache)",
-							"data":    string(cachedData),
-						})
-						return
+						var levels []models.MemberLevel
+						if err := json.Unmarshal(cachedData, &levels); err == nil {
+							c.JSON(http.StatusOK, gin.H{
+								"code":    200,
+								"message": "success (from cache)",
+								"data": gin.H{
+									"levels": levels,
+								},
+							})
+							return
+						}
 					}
-
 					// 从数据库获取会员等级（暂时使用应用ID 1，后续需要从请求中获取）
 					levels, err := memberService.GetMemberLevels(1)
 					if err != nil {
@@ -480,12 +481,10 @@ func main() {
 						})
 						return
 					}
-
 					// 缓存数据
 					if data, err := json.Marshal(levels); err == nil {
 						cacheService.SetMemberLevelsCache(data)
 					}
-
 					c.JSON(http.StatusOK, gin.H{
 						"code":    200,
 						"message": "success (from database)",

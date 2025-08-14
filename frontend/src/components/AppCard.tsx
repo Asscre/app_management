@@ -2,18 +2,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, AppWindow, Upload, Trash2, Settings } from "lucide-react";
+import { MoreHorizontal, AppWindow, Upload, Trash2, Settings, History } from "lucide-react";
 import { Application } from "@/types/app";
 import { ReleaseVersionDialog } from "./ReleaseVersionDialog";
 import { DeleteConfirmDialog } from "./ConfirmDialog";
+import { VersionHistoryDialog } from "./VersionHistoryDialog";
 
 interface AppCardProps {
   app: Application;
   onDeleteApp?: (id: number) => Promise<void>;
   onReleaseVersion?: (appId: number, data: any) => Promise<void>;
+  versions?: any[];
 }
 
-export function AppCard({ app, onDeleteApp, onReleaseVersion }: AppCardProps) {
+export function AppCard({ app, onDeleteApp, onReleaseVersion, versions = [] }: AppCardProps) {
   const statusColors = {
     active: 'bg-green-100 text-green-800',
     maintenance: 'bg-yellow-100 text-yellow-800',
@@ -62,6 +64,19 @@ export function AppCard({ app, onDeleteApp, onReleaseVersion }: AppCardProps) {
                   </div>
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem asChild>
+                <VersionHistoryDialog
+                  appId={app.id}
+                  appName={app.name}
+                  versions={versions}
+                  trigger={
+                    <div className="flex items-center w-full">
+                      <History className="h-4 w-4 mr-2" />
+                      版本历史
+                    </div>
+                  }
+                />
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="h-4 w-4 mr-2" />
                 应用设置
